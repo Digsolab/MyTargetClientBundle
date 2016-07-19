@@ -1,0 +1,16 @@
+{
+    "name": "dsl/mytarget-sdk-bundle",
+    "type": "library",
+    "license": "Apache License 2.0",
+    "authors": [
+        {
+            "name": "Vasil coylOne Kulakov",
+            "email": "iam@vasiliy.pro"
+        }
+    ],
+    "require": {
+        "php": ">=5.5",
+        "symfony/framework-bundle": ">=2.7.3",
+        "dsl/my-target-sdk": "dev-master"
+    }
+}
