@@ -20,6 +20,8 @@ class Configuration implements ConfigurationInterface
                         ->end()
                     ->end()
                 ->scalarNode('base_uri')->isRequired()->end()
+                ->scalarNode('cache_dir')->isRequired()->end()
+                ->scalarNode('redis_client_id')->isRequired()->end()
             ->end()
         ;
         return $treeBuilder;

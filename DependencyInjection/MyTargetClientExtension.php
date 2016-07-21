@@ -26,7 +26,7 @@ class MyTargetClientExtension extends ConfigurableExtension
         $this->loader = new Loader\XmlFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
         $this->loader->load('services.xml');
 
-        $container->setParameter('dsl.mytarget_client.cache_dir', $mergedConfig['path']['to']['cachedir']);
+        $container->setParameter('dsl.mytarget_client.cache_dir', $mergedConfig['cachedir']);
 
         // gathering cache collectors
         $cacheCollectors = [];
@@ -36,7 +36,7 @@ class MyTargetClientExtension extends ConfigurableExtension
         $container->getDefinition('dsl.my_target_client.cache.chain')->replaceArgument(0, $cacheCollectors);
         
         $baseUriDef = new Definition(Uri::class, [$mergedConfig['base_uri']]);
-        $credentialsDef = new Definition(Credentials::class, [$mergedConfig['client_id'], $mergedConfig['client_secret']]);
+        $credentialsDef = new Definition(Credentials::class, [$mergedConfig['auth']['client_id'], $mergedConfig['auth']['client_secret']]);
 
         $container->getDefinition('dsl.my_target_client.request_factory')
             ->replaceArgument(0, $baseUriDef);
@@ -54,5 +54,6 @@ class MyTargetClientExtension extends ConfigurableExtension
         }
         $middlewareStack = (new Definition())->setFactory(HttpMiddlewareStackPrototype::class.'::fromArray')
             ->setArguments([$middlewares, $container->getDefinition('dsl.my_target_client.transport.http')]);
+        $container->getDefinition('dsl.my_target_client.service.client')->replaceArgument(1, $middlewareStack);
     }
 }
