@@ -1,0 +1,65 @@
+<?xml version="1.0" ?>
+
+<container xmlns="http://symfony.com/schema/dic/services"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
+
+    <services>
+        <service id="dsl.my_target_client.http_client" class="GuzzleHttp\Client">
+        </service>
+        <service id="dsl.my_target_client.transport.http" class="MyTarget\Transport\GuzzleHttpTransport">
+            <argument type="service" id="dsl.my_target_client.http_client"/>
+        </service>
+        <service id="dsl.my_target_client.request_factory" class="MyTarget\Transport\RequestFactory" public="false">
+            <argument/> <!-- basUri -->
+        </service>
+        <service id="dsl.my_target_client.cache_provider.array" class="Doctrine\Common\Cache\ArrayCache">
+            <tag name="dsl.mytarget_client.cache_provider"/>
+        </service>
+        <service id="dsl.my_target_client.cache_provider.filesystem" class="Doctrine\Common\Cache\FilesystemCache">
+            <argument>%dsl.mytarget_client.cache_dir%</argument>
+            <tag name="dsl.mytarget_client.cache_provider"/>
+        </service>
+        <service id="dsl.my_target_client.cache.chain" class="Doctrine\Common\Cache\ChainCache">
+            <argument/> <!-- cacheProviders collection -->
+        </service>
+        <service id="dsl.my_target_client.rate_limit_provider" class="MyTarget\Limiting\DoctrineCacheRateLimitProvider">
+            <argument type="service" id="dsl.my_target_client.cache.chain"/>
+        </service>
+
+        <service id="dsl.my_target_client.token_acquirer" class="MyTarget\Token\TokenAcquirer">
+            <argument/> <!-- baseUri -->
+            <argument type="service" id="dsl.my_target_client.transport.http"/>
+            <argument/> <!-- credentials -->
+        </service>
+
+        <service id="dsl.my_target_client.cache_control" class="DSL\Cache\RedisHashMapCache">
+            <argument/> <!-- redis client -->
+        </service>
+
+        <service id="dsl.my_target_client.token_storage" class="MyTarget\Token\DoctrineCacheTokenStorage">
+            <argument type="service" id="dsl.my_target_client.cache_control"/>
+        </service>
+        <service id="dsl.my_target_client.service.token_manager" class="MyTarget\Token\TokenManager">
+            <argument type="service" id="dsl.my_target_client.token_acquirer"/>
+            <argument type="service" id="dsl.my_target_client.token_storage"/>
+        </service>
+
+        <service id="dsl.my_target_client.middleware.response_validating" class="MyTarget\Transport\Middleware\Impl\ResponseValidatingMiddleware">
+            <tag name="dsl.mytarget_client.middleware"/>
+        </service>
+        <service id="dsl.my_target_client.middleware.limitting" class="MyTarget\Limiting\LimitingMiddleware">
+            <argument type="service" id="dsl.my_target_client.rate_limit_provider"/>
+            <tag name="dsl.mytarget_client.middleware"/>
+        </service>
+        <service id="dsl.my_target_client.middleware.client_grant" class="MyTarget\Token\ClientGrantMiddleware">
+            <argument type="service" id="dsl.my_target_client.service.token_manager"/>
+            <tag name="dsl.mytarget_client.middleware"/>
+        </service>
+
+        <service id="dsl.my_target_client.service.client" class="MyTarget\Client">
+            <argument type="service" id="dsl.my_target_client.request_factory"/>
+            <argument/> <!-- middleware stack -->
+        </service>
+    </services>
+</container>
