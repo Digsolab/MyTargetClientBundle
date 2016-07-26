@@ -14,6 +14,6 @@
         "dsl/my-target-sdk": "dev-master",
         "dsl/cache-control": "~0.1",
         "guzzlehttp/guzzle": "^6.2",
-        "predis/predis": "^1.1"
+        "predis/predis": "^1.0"
     }
 }
