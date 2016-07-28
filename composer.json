@@ -8,6 +8,9 @@
             "email": "iam@vasiliy.pro"
         }
     ],
+    "autoload": {
+        "psr-4": { "DSL\\MyTargetClientBundle\\": "" }
+    },
     "require": {
         "php": ">=5.5",
         "symfony/framework-bundle": ">=2.7.3",
