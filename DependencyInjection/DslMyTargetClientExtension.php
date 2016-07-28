@@ -37,7 +37,9 @@ class DslMyTargetClientExtension extends ConfigurableExtension
         $this->loadTypes($container);
         $types = [];
         foreach ($container->findTaggedServiceIds('dsl.my_target_client.type') as $def => $tags) {
-            $types[] = $container->getDefinition($def);
+            foreach ($tags as $attributes) {
+                $types[$attributes['type']] = $container->getDefinition($def);
+            }
         }
         $container->getDefinition('dsl.my_target_client.service.mapper')->replaceArgument(0, $types);
 
