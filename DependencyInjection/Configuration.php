@@ -13,15 +13,20 @@ class Configuration implements ConfigurationInterface
         $root = $treeBuilder->root('dsl_my_target_client');
         $root
             ->children()
-                ->arrayNode('auth')
+                ->arrayNode('clients')->useAttributeAsKey('name')
+                    ->prototype('array')
                     ->children()
-                        ->scalarNode('client_id')->end()
-                        ->scalarNode('client_secret')->end()
+                        ->arrayNode('auth')
+                            ->children()
+                                ->scalarNode('client_id')->end()
+                                ->scalarNode('client_secret')->end()
+                            ->end()
                         ->end()
+                        ->scalarNode('base_uri')->defaultValue('https://target.my.com/api/')->end()
+                        ->scalarNode('cache_dir')->defaultValue('%kernel.root_dir%/cache/mytarget')->end()
+                        ->scalarNode('redis_client')->isRequired()->end()
                     ->end()
-                ->scalarNode('base_uri')->isRequired()->end()
-                ->scalarNode('cache_dir')->isRequired()->end()
-                ->scalarNode('redis_client_id')->isRequired()->end()
+                ->end()
             ->end()
         ;
         return $treeBuilder;
