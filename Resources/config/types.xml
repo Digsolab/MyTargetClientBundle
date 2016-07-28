@@ -23,6 +23,7 @@
         <service id="dsl.my_target_client.type.object" class="MyTarget\Mapper\Type\ObjectType">
             <argument/>
             <argument/>
+            <tag name="dsl.my_target.type"/>
         </service>
     </services>
 </container>

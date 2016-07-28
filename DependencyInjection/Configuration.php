@@ -13,6 +13,9 @@ class Configuration implements ConfigurationInterface
         $root = $treeBuilder->root('dsl_my_target_client');
         $root
             ->children()
+                ->scalarNode('redis_client')->isRequired()->end()
+                ->scalarNode('lock_lifetime')->defaultValue(300)->end()
+                ->scalarNode('lock_prefix')->defaultValue('lock')->end()
                 ->arrayNode('clients')->useAttributeAsKey('name')
                     ->prototype('array')
                     ->children()
@@ -24,7 +27,6 @@ class Configuration implements ConfigurationInterface
                         ->end()
                         ->scalarNode('base_uri')->defaultValue('https://target.my.com/api/')->end()
                         ->scalarNode('cache_dir')->defaultValue('%kernel.root_dir%/cache/mytarget')->end()
-                        ->scalarNode('redis_client')->isRequired()->end()
                     ->end()
                 ->end()
             ->end()

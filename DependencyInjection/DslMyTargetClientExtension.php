@@ -4,6 +4,8 @@ namespace DSL\MyTargetClientBundle\DependencyInjection;
 
 use Doctrine\Common\Annotations\AnnotationReader;
 use Doctrine\Instantiator\Instantiator;
+use DSL\Lock\RedisLock;
+use DSL\MyTargetClientBundle\PrefixLockManager;
 use GuzzleHttp\Psr7\Uri;
 use MyTarget\Client;
 use MyTarget\Token\ClientCredentials\Credentials;
@@ -27,6 +29,11 @@ class DslMyTargetClientExtension extends ConfigurableExtension
         $this->loader = new Loader\XmlFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
         $this->loader->load('services.xml');
 
+        $redisRef = new Reference($mergedConfig['redis_client']);
+        $lockDef = new Definition(RedisLock::class, [$redisRef]);
+        $lockManagerDef = new Definition(PrefixLockManager::class, [$lockDef, $mergedConfig['lock_lifetime'], $mergedConfig['lock_prefix']]);
+        $container->getDefinition('dsl.my_target_client.service.token_manager')->replaceArgument(2, $lockManagerDef);
+
         $this->loadTypes($container);
         $types = [];
         foreach ($container->findTaggedServiceIds('dsl.my_target_client.type') as $def => $tags) {
@@ -35,7 +42,7 @@ class DslMyTargetClientExtension extends ConfigurableExtension
         $container->getDefinition('dsl.my_target_client.service.mapper')->replaceArgument(0, $types);
 
         foreach ($mergedConfig['clients'] as $name => $config) {
-            $this->loadClient($name, $config, $container);
+            $this->loadClient($name, $config, $redisRef, $container);
         }
     }
 
@@ -51,7 +58,7 @@ class DslMyTargetClientExtension extends ConfigurableExtension
      * @param array $mergedConfig
      * @param ContainerBuilder $container
      */
-    protected function loadClient($clientName, array $mergedConfig, ContainerBuilder $container)
+    protected function loadClient($clientName, array $mergedConfig, $redisRef, ContainerBuilder $container)
     {
         $container->setParameter('dsl.mytarget_client.cache_dir', $mergedConfig['cache_dir']);
 
@@ -75,7 +82,7 @@ class DslMyTargetClientExtension extends ConfigurableExtension
                   ->replaceArgument(2, $credentialsDef);
 
         $container->getDefinition('dsl.my_target_client.cache_control')
-                  ->replaceArgument(0, new Reference($mergedConfig['redis_client']));
+                  ->replaceArgument(0, $redisRef);
 
         // gathering middlewares
         $middlewares = [];

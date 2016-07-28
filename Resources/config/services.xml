@@ -13,6 +13,7 @@
         <service id="dsl.my_target_client.service.token_manager" class="MyTarget\Token\TokenManager">
             <argument type="service" id="dsl.my_target_client.token_acquirer"/>
             <argument type="service" id="dsl.my_target_client.token_storage"/>
+            <argument/> <!-- lock manager -->
         </service>
         <service id="dsl.my_target_client.service.mapper" class="MyTarget\Mapper\Mapper">
             <argument/> <!-- types -->
@@ -70,7 +71,7 @@
             <tag name="dsl.mytarget_client.middleware"/>
         </service>
 
-        <service id="dsl.my_target_client.middleware.client_grant" class="MyTarget\Token\ClientGrantMiddleware" public="false">
+        <service id="dsl.my_target_client.middleware.client_grant" class="MyTarget\Token\GrantMiddleware" public="false">
             <argument type="service" id="dsl.my_target_client.service.token_manager"/>
             <tag name="dsl.mytarget_client.middleware"/>
         </service>
