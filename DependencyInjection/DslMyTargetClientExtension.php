@@ -2,6 +2,8 @@
 
 namespace DSL\MyTargetClientBundle\DependencyInjection;
 
+use Doctrine\Common\Annotations\AnnotationReader;
+use Doctrine\Instantiator\Instantiator;
 use GuzzleHttp\Psr7\Uri;
 use MyTarget\Client;
 use MyTarget\Token\ClientCredentials\Credentials;
@@ -25,9 +27,24 @@ class DslMyTargetClientExtension extends ConfigurableExtension
         $this->loader = new Loader\XmlFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
         $this->loader->load('services.xml');
 
+        $this->loadTypes($container);
+        $types = [];
+        foreach ($container->findTaggedServiceIds('dsl.my_target_client.type') as $def => $tags) {
+            $types[] = $container->getDefinition($def);
+        }
+        $container->getDefinition('dsl.my_target_client.service.mapper')->replaceArgument(0, $types);
+
         foreach ($mergedConfig['clients'] as $name => $config) {
             $this->loadClient($name, $config, $container);
         }
+    }
+
+    protected function loadTypes(ContainerBuilder $container)
+    {
+        $objectTypeDef = $container->getDefinition('dsl.my_target_client.type.object');
+        $readerDef = new Definition(AnnotationReader::class);
+        $instantiatorDef = new Definition(Instantiator::class);
+        $objectTypeDef->setArguments([$readerDef, $instantiatorDef]);
     }
 
     /**

@@ -1,0 +1,28 @@
+<?xml version="1.0" ?>
+
+<container xmlns="http://symfony.com/schema/dic/services"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
+
+    <services>
+        <service id="dsl.my_target_client.type.array" class="MyTarget\Mapper\Type\ArrayType">
+            <tag name="dsl.my_target.type"/>
+        </service>
+        <service id="dsl.my_target_client.type.scalar" class="MyTarget\Mapper\Type\ScalarType">
+            <tag name="dsl.my_target.type"/>
+        </service>
+        <service id="dsl.my_target_client.type.date" class="MyTarget\Mapper\Type\DateTimeType">
+            <tag name="dsl.my_target.type"/>
+        </service>
+        <service id="dsl.my_target_client.type.enum" class="MyTarget\Mapper\Type\EnumType">
+            <tag name="dsl.my_target.type"/>
+        </service>
+        <service id="dsl.my_target_client.type.mixed" class="MyTarget\Mapper\Type\MixedType">
+            <tag name="dsl.my_target.type"/>
+        </service>
+        <service id="dsl.my_target_client.type.object" class="MyTarget\Mapper\Type\ObjectType">
+            <argument/>
+            <argument/>
+        </service>
+    </services>
+</container>
