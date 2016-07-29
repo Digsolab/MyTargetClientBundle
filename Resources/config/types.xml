@@ -6,24 +6,24 @@
 
     <services>
         <service id="dsl.my_target_client.type.array" class="MyTarget\Mapper\Type\ArrayType">
-            <tag name="dsl.my_target.type" type="array"/>
+            <tag name="dsl.my_target_client.type" type="array"/>
         </service>
         <service id="dsl.my_target_client.type.scalar" class="MyTarget\Mapper\Type\ScalarType">
-            <tag name="dsl.my_target.type" type="scalar"/>
+            <tag name="dsl.my_target_client.type" type="scalar"/>
         </service>
         <service id="dsl.my_target_client.type.date" class="MyTarget\Mapper\Type\DateTimeType">
-            <tag name="dsl.my_target.type" type="date"/>
+            <tag name="dsl.my_target_client.type" type="date"/>
         </service>
         <service id="dsl.my_target_client.type.enum" class="MyTarget\Mapper\Type\EnumType">
-            <tag name="dsl.my_target.type" type="enum"/>
+            <tag name="dsl.my_target_client.type" type="enum"/>
         </service>
         <service id="dsl.my_target_client.type.mixed" class="MyTarget\Mapper\Type\MixedType">
-            <tag name="dsl.my_target.type" type="mixed"/>
+            <tag name="dsl.my_target_client.type" type="mixed"/>
         </service>
         <service id="dsl.my_target_client.type.object" class="MyTarget\Mapper\Type\ObjectType">
             <argument/>
             <argument/>
-            <tag name="dsl.my_target.type" type="object"/>
+            <tag name="dsl.my_target_client.type" type="object"/>
         </service>
     </services>
 </container>
