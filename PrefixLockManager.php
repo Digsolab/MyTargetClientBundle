@@ -10,7 +10,7 @@ class PrefixLockManager extends LockManager
     public function __construct(LockInterface $lock, $lifetime, $prefix)
     {
         $hashFunction = function ($v) use ($prefix) {
-            return $prefix . '_' . $v;
+            return $prefix . $v;
         };
         parent::__construct($lock, $lifetime, $hashFunction);
     }

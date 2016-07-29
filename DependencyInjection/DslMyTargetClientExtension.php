@@ -43,6 +43,7 @@ class DslMyTargetClientExtension extends ConfigurableExtension
             }
         }
         $container->getDefinition('dsl.my_target_client.service.mapper')->replaceArgument(0, $types);
+        $container->getDefinition('dsl.my_target_client.token_storage')->replaceArgument(1, $mergedConfig['token_prefix']);
 
         foreach ($mergedConfig['clients'] as $name => $config) {
             $this->loadClient($name, $config, $redisRef, $container);
