@@ -14,8 +14,8 @@ class Configuration implements ConfigurationInterface
         $root
             ->children()
                 ->scalarNode('redis_client')->isRequired()->end()
-                ->scalarNode('lock_lifetime')->defaultValue(300)->end()
                 ->scalarNode('lock_prefix')->defaultValue('lock')->end()
+                ->scalarNode('lock_lifetime')->defaultValue(300)->end()
                 ->arrayNode('clients')->useAttributeAsKey('name')
                     ->prototype('array')
                     ->children()
@@ -27,6 +27,7 @@ class Configuration implements ConfigurationInterface
                         ->end()
                         ->scalarNode('base_uri')->defaultValue('https://target.my.com/api/')->end()
                         ->scalarNode('cache_dir')->defaultValue('%kernel.root_dir%/cache/mytarget')->end()
+                        ->scalarNode('guzzle_client')->defaultValue(null)->end()
                     ->end()
                 ->end()
             ->end()

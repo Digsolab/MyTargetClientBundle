@@ -9,6 +9,7 @@ use DSL\MyTargetClientBundle\PrefixLockManager;
 use GuzzleHttp\Psr7\Uri;
 use MyTarget\Client;
 use MyTarget\Token\ClientCredentials\Credentials;
+use MyTarget\Transport\HttpTransport;
 use MyTarget\Transport\Middleware\HttpMiddlewareStackPrototype;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -57,19 +58,16 @@ class DslMyTargetClientExtension extends ConfigurableExtension
     }
 
     /**
-     * @param array $mergedConfig
+     * @param array            $mergedConfig
      * @param ContainerBuilder $container
+     *
+     * @throws \Symfony\Component\DependencyInjection\Exception\BadMethodCallException
+     * @throws \Symfony\Component\DependencyInjection\Exception\ServiceNotFoundException
+     * @throws \Symfony\Component\DependencyInjection\Exception\OutOfBoundsException
      */
     protected function loadClient($clientName, array $mergedConfig, $redisRef, ContainerBuilder $container)
     {
         $container->setParameter('dsl.mytarget_client.cache_dir', $mergedConfig['cache_dir']);
-
-        // gathering cache collectors
-        $cacheCollectors = [];
-        foreach ($container->findTaggedServiceIds('dsl.mytarget_client.cache_provider') as $def => $tags) {
-            $cacheCollectors[] = $container->getDefinition($def);
-        }
-        $container->getDefinition('dsl.my_target_client.cache.chain')->replaceArgument(0, $cacheCollectors);
 
         $baseUriDef = new Definition(Uri::class, [$mergedConfig['base_uri']]);
         $credentialsDef = new Definition(
@@ -79,6 +77,7 @@ class DslMyTargetClientExtension extends ConfigurableExtension
 
         $container->getDefinition('dsl.my_target_client.request_factory')
                   ->replaceArgument(0, $baseUriDef);
+
         $container->getDefinition('dsl.my_target_client.token_acquirer')
                   ->replaceArgument(0, $baseUriDef)
                   ->replaceArgument(2, $credentialsDef);
@@ -86,18 +85,23 @@ class DslMyTargetClientExtension extends ConfigurableExtension
         $container->getDefinition('dsl.my_target_client.cache_control')
                   ->replaceArgument(0, $redisRef);
 
-        // gathering middlewares
+        // gathering middlewares TODO move to compiles pass
         $middlewares = [];
+
         foreach ($container->findTaggedServiceIds('dsl.mytarget_client.middleware') as $def => $tags) {
             $middlewares[] = $container->getDefinition($def);
         }
-        $middlewareStack = (new Definition())->setFactory(HttpMiddlewareStackPrototype::class . '::fromArray')
-                                             ->setArguments(
-                                                 [
-                                                     $middlewares,
-                                                     $container->getDefinition('dsl.my_target_client.transport.http')
-                                                 ]
-                                             );
+
+        if ($mergedConfig['guzzle_client'] !== null) {
+            $transportDef = new Definition(HttpTransport::class, [new Reference($mergedConfig['guzzle_client'])]);
+        } else {
+            $transportDef = $container->getDefinition('dsl.my_target_client.transport.http');
+        }
+
+        $middlewareStack = (new Definition())
+            ->setFactory(HttpMiddlewareStackPrototype::class . '::fromArray')
+            ->setArguments( [ $middlewares, $transportDef ] );
+
         $requestFactoryDefinition = $container->getDefinition('dsl.my_target_client.request_factory');
         $clientDefinition = new Definition(Client::class, [$requestFactoryDefinition, $middlewareStack]);
         $container->setDefinition('dsl.my_target_client.service.client.'.$clientName, $clientDefinition);

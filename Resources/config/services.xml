@@ -31,21 +31,8 @@
             <argument/> <!-- baseUri -->
         </service>
 
-        <service id="dsl.my_target_client.cache_provider.array" class="Doctrine\Common\Cache\ArrayCache" public="false">
-            <tag name="dsl.mytarget_client.cache_provider"/>
-        </service>
-
-        <service id="dsl.my_target_client.cache_provider.filesystem" class="Doctrine\Common\Cache\FilesystemCache" public="false">
-            <argument>%dsl.mytarget_client.cache_dir%</argument>
-            <tag name="dsl.mytarget_client.cache_provider"/>
-        </service>
-
-        <service id="dsl.my_target_client.cache.chain" class="Doctrine\Common\Cache\ChainCache" public="false">
-            <argument/> <!-- cacheProviders collection -->
-        </service>
-
         <service id="dsl.my_target_client.rate_limit_provider" class="MyTarget\Limiting\DoctrineCacheRateLimitProvider" public="false">
-            <argument type="service" id="dsl.my_target_client.cache.chain"/>
+            <argument type="service" id="dsl.my_target_client.cache_control"/>
         </service>
 
         <service id="dsl.my_target_client.token_acquirer" class="MyTarget\Token\TokenAcquirer" public="false">
