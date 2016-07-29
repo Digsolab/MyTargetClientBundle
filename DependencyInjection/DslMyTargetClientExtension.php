@@ -125,7 +125,7 @@ class DslMyTargetClientExtension extends ConfigurableExtension
         foreach ($container->findTaggedServiceIds('dsl.mytarget_client.middleware') as $def => $tags) {
             $middlewares[] = $container->getDefinition($def);
         }
-        $middlewareStack[] = new Definition(GrantMiddleware::class, [$tokenManagerDef]);
+        $middlewares[] = new Definition(GrantMiddleware::class, [$tokenManagerDef]);
 
         $middlewareStack = (new Definition())
             ->setFactory(HttpMiddlewareStackPrototype::class . '::fromArray')
