@@ -9,7 +9,12 @@ use DSL\MyTargetClientBundle\PrefixLockManager;
 use GuzzleHttp\Psr7\Uri;
 use MyTarget\Client;
 use MyTarget\Token\ClientCredentials\Credentials;
+use MyTarget\Token\GrantMiddleware;
+use MyTarget\Token\TokenAcquirer;
+use MyTarget\Token\TokenManager;
+use MyTarget\Transport\HttpTransport;
 use MyTarget\Transport\Middleware\HttpMiddlewareStackPrototype;
+use MyTarget\Transport\RequestFactory;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
@@ -31,8 +36,10 @@ class DslMyTargetClientExtension extends ConfigurableExtension
 
         $redisRef = new Reference($mergedConfig['redis_client']);
         $lockDef = new Definition(RedisLock::class, [$redisRef]);
-        $lockManagerDef = new Definition(PrefixLockManager::class, [$lockDef, $mergedConfig['lock_lifetime'], $mergedConfig['lock_prefix']]);
-        $container->getDefinition('dsl.my_target_client.service.token_manager')->replaceArgument(2, $lockManagerDef);
+        $lockManagerDef = new Definition(
+            PrefixLockManager::class,
+            [$lockDef, $mergedConfig['lock_lifetime'], $mergedConfig['lock_prefix']]
+        );
 
         $this->loadTypes($container);
         $types = [];
@@ -42,9 +49,13 @@ class DslMyTargetClientExtension extends ConfigurableExtension
             }
         }
         $container->getDefinition('dsl.my_target_client.service.mapper')->replaceArgument(0, $types);
+        $container->getDefinition('dsl.my_target_client.token_storage')->replaceArgument(
+            1,
+            $mergedConfig['token_prefix']
+        );
 
         foreach ($mergedConfig['clients'] as $name => $config) {
-            $this->loadClient($name, $config, $redisRef, $container);
+            $this->loadClient($name, $config, $redisRef, $lockManagerDef, $container);
         }
     }
 
@@ -57,49 +68,70 @@ class DslMyTargetClientExtension extends ConfigurableExtension
     }
 
     /**
-     * @param array $mergedConfig
+     * @param array            $mergedConfig
      * @param ContainerBuilder $container
+     *
+     * @throws \Symfony\Component\DependencyInjection\Exception\BadMethodCallException
+     * @throws \Symfony\Component\DependencyInjection\Exception\ServiceNotFoundException
+     * @throws \Symfony\Component\DependencyInjection\Exception\OutOfBoundsException
      */
-    protected function loadClient($clientName, array $mergedConfig, $redisRef, ContainerBuilder $container)
-    {
-        $container->setParameter('dsl.mytarget_client.cache_dir', $mergedConfig['cache_dir']);
-
-        // gathering cache collectors
-        $cacheCollectors = [];
-        foreach ($container->findTaggedServiceIds('dsl.mytarget_client.cache_provider') as $def => $tags) {
-            $cacheCollectors[] = $container->getDefinition($def);
+    protected function loadClient(
+        $clientName,
+        array $mergedConfig,
+        $redisRef,
+        $lockManagerDef,
+        ContainerBuilder $container
+    ) {
+        if ($mergedConfig['guzzle_client'] !== null) {
+            $transportDef = new Definition(HttpTransport::class, [new Reference($mergedConfig['guzzle_client'])]);
+        } else {
+            $transportDef = $container->getDefinition('dsl.my_target_client.transport.http');
         }
-        $container->getDefinition('dsl.my_target_client.cache.chain')->replaceArgument(0, $cacheCollectors);
+
+        $container->setParameter('dsl.mytarget_client.cache_dir', $mergedConfig['cache_dir']);
 
         $baseUriDef = new Definition(Uri::class, [$mergedConfig['base_uri']]);
         $credentialsDef = new Definition(
             Credentials::class,
             [$mergedConfig['auth']['client_id'], $mergedConfig['auth']['client_secret']]
         );
+        $requestFactoryDef = new Definition(RequestFactory::class, [$baseUriDef]);
+        $tokenAcquirerDef = new Definition(TokenAcquirer::class, [$baseUriDef, $transportDef, $credentialsDef]);
+        $tokenManagerDef = new Definition(
+            TokenManager::class,
+            [
+                $tokenAcquirerDef,
+                $container->getDefinition('dsl.my_target_client.token_storage'),
+                $lockManagerDef,
+            ]
+        );
 
-        $container->getDefinition('dsl.my_target_client.request_factory')
-                  ->replaceArgument(0, $baseUriDef);
-        $container->getDefinition('dsl.my_target_client.token_acquirer')
-                  ->replaceArgument(0, $baseUriDef)
-                  ->replaceArgument(2, $credentialsDef);
+        $container->addDefinitions(
+            [
+                $requestFactoryDef,
+                $tokenAcquirerDef,
+                'dsl.my_target_client.service.token_manager.' . $clientName => $tokenManagerDef
+            ]
+        );
+
+        $container->getDefinition('dsl.my_target_client.service.token_manager')->replaceArgument(2, $lockManagerDef);
 
         $container->getDefinition('dsl.my_target_client.cache_control')
                   ->replaceArgument(0, $redisRef);
 
-        // gathering middlewares
+        // gathering middlewares TODO move to compiles pass
         $middlewares = [];
+
         foreach ($container->findTaggedServiceIds('dsl.mytarget_client.middleware') as $def => $tags) {
             $middlewares[] = $container->getDefinition($def);
         }
-        $middlewareStack = (new Definition())->setFactory(HttpMiddlewareStackPrototype::class . '::fromArray')
-                                             ->setArguments(
-                                                 [
-                                                     $middlewares,
-                                                     $container->getDefinition('dsl.my_target_client.transport.http')
-                                                 ]
-                                             );
-        $requestFactoryDefinition = $container->getDefinition('dsl.my_target_client.request_factory');
-        $clientDefinition = new Definition(Client::class, [$requestFactoryDefinition, $middlewareStack]);
-        $container->setDefinition('dsl.my_target_client.service.client.'.$clientName, $clientDefinition);
+        $middlewares[] = new Definition(GrantMiddleware::class, [$tokenManagerDef]);
+
+        $middlewareStack = (new Definition())
+            ->setFactory(HttpMiddlewareStackPrototype::class . '::fromArray')
+            ->setArguments([$middlewares, $transportDef]);
+
+        $clientDefinition = new Definition(Client::class, [$requestFactoryDef, $middlewareStack]);
+        $container->setDefinition('dsl.my_target_client.service.client.' . $clientName, $clientDefinition);
     }
 }

@@ -11,7 +11,7 @@
     <services>
         <!-- public services -->
         <service id="dsl.my_target_client.service.token_manager" class="MyTarget\Token\TokenManager">
-            <argument type="service" id="dsl.my_target_client.token_acquirer"/>
+            <argument/> <!-- token acquirer -->
             <argument type="service" id="dsl.my_target_client.token_storage"/>
             <argument/> <!-- lock manager -->
         </service>
@@ -27,39 +27,17 @@
             <argument type="service" id="dsl.my_target_client.http_client"/>
         </service>
 
-        <service id="dsl.my_target_client.request_factory" class="MyTarget\Transport\RequestFactory" public="false">
-            <argument/> <!-- baseUri -->
-        </service>
-
-        <service id="dsl.my_target_client.cache_provider.array" class="Doctrine\Common\Cache\ArrayCache" public="false">
-            <tag name="dsl.mytarget_client.cache_provider"/>
-        </service>
-
-        <service id="dsl.my_target_client.cache_provider.filesystem" class="Doctrine\Common\Cache\FilesystemCache" public="false">
-            <argument>%dsl.mytarget_client.cache_dir%</argument>
-            <tag name="dsl.mytarget_client.cache_provider"/>
-        </service>
-
-        <service id="dsl.my_target_client.cache.chain" class="Doctrine\Common\Cache\ChainCache" public="false">
-            <argument/> <!-- cacheProviders collection -->
-        </service>
-
         <service id="dsl.my_target_client.rate_limit_provider" class="MyTarget\Limiting\DoctrineCacheRateLimitProvider" public="false">
-            <argument type="service" id="dsl.my_target_client.cache.chain"/>
-        </service>
-
-        <service id="dsl.my_target_client.token_acquirer" class="MyTarget\Token\TokenAcquirer" public="false">
-            <argument/> <!-- baseUri -->
-            <argument type="service" id="dsl.my_target_client.transport.http"/>
-            <argument/> <!-- credentials -->
+            <argument type="service" id="dsl.my_target_client.cache_control"/>
         </service>
 
         <service id="dsl.my_target_client.cache_control" class="DSL\Cache\RedisHashMapCache" public="false">
             <argument/> <!-- redis client -->
         </service>
 
-        <service id="dsl.my_target_client.token_storage" class="MyTarget\Token\DoctrineCacheTokenStorage" public="false">
+        <service id="dsl.my_target_client.token_storage" class="DSL\MyTargetClientBundle\PrefixDoctrineCacheTokenStorage" public="false">
             <argument type="service" id="dsl.my_target_client.cache_control"/>
+            <argument/> <!-- prefix from config -->
         </service>
 
         <service id="dsl.my_target_client.middleware.response_validating" class="MyTarget\Transport\Middleware\Impl\ResponseValidatingMiddleware" public="false">
@@ -68,11 +46,6 @@
 
         <service id="dsl.my_target_client.middleware.limitting" class="MyTarget\Limiting\LimitingMiddleware" public="false">
             <argument type="service" id="dsl.my_target_client.rate_limit_provider"/>
-            <tag name="dsl.mytarget_client.middleware"/>
-        </service>
-
-        <service id="dsl.my_target_client.middleware.client_grant" class="MyTarget\Token\GrantMiddleware" public="false">
-            <argument type="service" id="dsl.my_target_client.service.token_manager"/>
             <tag name="dsl.mytarget_client.middleware"/>
         </service>
     </services>
