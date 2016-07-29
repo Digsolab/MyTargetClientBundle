@@ -10,11 +10,6 @@
 
     <services>
         <!-- public services -->
-        <service id="dsl.my_target_client.service.token_manager" class="MyTarget\Token\TokenManager">
-            <argument/> <!-- token acquirer -->
-            <argument type="service" id="dsl.my_target_client.token_storage"/>
-            <argument/> <!-- lock manager -->
-        </service>
         <service id="dsl.my_target_client.service.mapper" class="MyTarget\Mapper\Mapper">
             <argument/> <!-- types -->
         </service>
