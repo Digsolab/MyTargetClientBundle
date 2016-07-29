@@ -27,18 +27,8 @@
             <argument type="service" id="dsl.my_target_client.http_client"/>
         </service>
 
-        <service id="dsl.my_target_client.request_factory" class="MyTarget\Transport\RequestFactory" public="false">
-            <argument/> <!-- baseUri -->
-        </service>
-
         <service id="dsl.my_target_client.rate_limit_provider" class="MyTarget\Limiting\DoctrineCacheRateLimitProvider" public="false">
             <argument type="service" id="dsl.my_target_client.cache_control"/>
-        </service>
-
-        <service id="dsl.my_target_client.token_acquirer" class="MyTarget\Token\TokenAcquirer" public="false">
-            <argument/> <!-- baseUri -->
-            <argument type="service" id="dsl.my_target_client.transport.http"/>
-            <argument/> <!-- credentials -->
         </service>
 
         <service id="dsl.my_target_client.cache_control" class="DSL\Cache\RedisHashMapCache" public="false">

@@ -9,8 +9,10 @@ use DSL\MyTargetClientBundle\PrefixLockManager;
 use GuzzleHttp\Psr7\Uri;
 use MyTarget\Client;
 use MyTarget\Token\ClientCredentials\Credentials;
+use MyTarget\Token\TokenAcquirer;
 use MyTarget\Transport\HttpTransport;
 use MyTarget\Transport\Middleware\HttpMiddlewareStackPrototype;
+use MyTarget\Transport\RequestFactory;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
@@ -68,6 +70,12 @@ class DslMyTargetClientExtension extends ConfigurableExtension
      */
     protected function loadClient($clientName, array $mergedConfig, $redisRef, ContainerBuilder $container)
     {
+        if ($mergedConfig['guzzle_client'] !== null) {
+            $transportDef = new Definition(HttpTransport::class, [new Reference($mergedConfig['guzzle_client'])]);
+        } else {
+            $transportDef = $container->getDefinition('dsl.my_target_client.transport.http');
+        }
+
         $container->setParameter('dsl.mytarget_client.cache_dir', $mergedConfig['cache_dir']);
 
         $baseUriDef = new Definition(Uri::class, [$mergedConfig['base_uri']]);
@@ -76,12 +84,10 @@ class DslMyTargetClientExtension extends ConfigurableExtension
             [$mergedConfig['auth']['client_id'], $mergedConfig['auth']['client_secret']]
         );
 
-        $container->getDefinition('dsl.my_target_client.request_factory')
-                  ->replaceArgument(0, $baseUriDef);
-
-        $container->getDefinition('dsl.my_target_client.token_acquirer')
-                  ->replaceArgument(0, $baseUriDef)
-                  ->replaceArgument(2, $credentialsDef);
+        $container->addDefinitions([
+            new Definition(RequestFactory::class, [$baseUriDef]),
+            new Definition(TokenAcquirer::class, [$baseUriDef, $transportDef, $credentialsDef])
+                                   ]);
 
         $container->getDefinition('dsl.my_target_client.cache_control')
                   ->replaceArgument(0, $redisRef);
@@ -91,12 +97,6 @@ class DslMyTargetClientExtension extends ConfigurableExtension
 
         foreach ($container->findTaggedServiceIds('dsl.mytarget_client.middleware') as $def => $tags) {
             $middlewares[] = $container->getDefinition($def);
-        }
-
-        if ($mergedConfig['guzzle_client'] !== null) {
-            $transportDef = new Definition(HttpTransport::class, [new Reference($mergedConfig['guzzle_client'])]);
-        } else {
-            $transportDef = $container->getDefinition('dsl.my_target_client.transport.http');
         }
 
         $middlewareStack = (new Definition())
