@@ -85,7 +85,11 @@ class DslMyTargetClientExtension extends ConfigurableExtension
         if ($mergedConfig['guzzle_client'] !== null) {
             $transportDef = new Definition(HttpTransport::class, [new Reference($mergedConfig['guzzle_client'])]);
         } else {
-            $transportDef = $container->getDefinition('dsl.my_target_client.transport.http');
+            if (null !== $mergedConfig['transport_service']) {
+                $transportDef = new Reference($mergedConfig['transport_service']);
+            } else {
+                $transportDef = $container->getDefinition('dsl.my_target_client.transport.http');
+            }
         }
 
         $container->setParameter('dsl.mytarget_client.cache_dir', $mergedConfig['cache_dir']);
