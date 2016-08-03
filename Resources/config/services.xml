@@ -8,6 +8,10 @@
         <import resource="types.xml"/>
     </imports>
 
+    <parameters>
+        <parameter key="dsl.my_target_client.transport.http.class">MyTarget\Transport\GuzzleHttpTransport</parameter>
+    </parameters>
+
     <services>
         <!-- public services -->
         <service id="dsl.my_target_client.service.mapper" class="MyTarget\Mapper\Mapper">
@@ -18,7 +22,7 @@
         <service id="dsl.my_target_client.http_client" class="GuzzleHttp\Client" public="false">
         </service>
 
-        <service id="dsl.my_target_client.transport.http" class="MyTarget\Transport\GuzzleHttpTransport" public="false">
+        <service id="dsl.my_target_client.transport.http" class="%dsl.my_target_client.transport.http.class%" public="false">
             <argument type="service" id="dsl.my_target_client.http_client"/>
         </service>
 
