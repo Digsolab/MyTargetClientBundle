@@ -30,6 +30,12 @@
             <argument/> <!-- redis client -->
         </service>
 
+        <service id="dsl.my_target_client.lock_manager" class="DSL\MyTargetClientBundle\PrefixLockManager">
+            <argument/> <!-- lock -->
+            <argument/> <!-- lock lifetime -->
+            <argument/> <!-- lock prefix -->
+        </service>
+
         <service id="dsl.my_target_client.token_storage" class="DSL\MyTargetClientBundle\PrefixDoctrineCacheTokenStorage" public="false">
             <argument type="service" id="dsl.my_target_client.cache_control"/>
             <argument/> <!-- prefix from config -->
