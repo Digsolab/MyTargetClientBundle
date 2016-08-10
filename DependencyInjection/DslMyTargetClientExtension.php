@@ -36,10 +36,10 @@ class DslMyTargetClientExtension extends ConfigurableExtension
 
         $redisRef = new Reference($mergedConfig['redis_client']);
         $lockDef = new Definition(RedisLock::class, [$redisRef]);
-        $lockManagerDef = new Definition(
-            PrefixLockManager::class,
-            [$lockDef, $mergedConfig['lock_lifetime'], $mergedConfig['lock_prefix']]
-        );
+        $lockManagerDef = $container->getDefinition('dsl.my_target_client.lock_manager')
+            ->replaceArgument(0, $lockDef)
+            ->replaceArgument(1, $mergedConfig['lock_lifetime'])
+            ->replaceArgument(2, $mergedConfig['lock_prefix']);
 
         $this->loadTypes($container);
         $types = [];
