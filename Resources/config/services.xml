@@ -10,7 +10,7 @@
 
     <services>
         <!-- public services -->
-        <service id="dsl.my_target_client.service.mapper" class="MyTarget\Mapper\Mapper">
+        <service id="dsl.my_target_client.service.mapper" class="Dsl\MyTarget\Mapper\Mapper">
             <argument/> <!-- types -->
         </service>
 
@@ -18,11 +18,11 @@
         <service id="dsl.my_target_client.http_client" class="GuzzleHttp\Client" public="false">
         </service>
 
-        <service id="dsl.my_target_client.transport.http" class="MyTarget\Transport\GuzzleHttpTransport" public="false">
+        <service id="dsl.my_target_client.transport.http" class="Dsl\MyTarget\Transport\GuzzleHttpTransport" public="false">
             <argument type="service" id="dsl.my_target_client.http_client"/>
         </service>
 
-        <service id="dsl.my_target_client.rate_limit_provider" class="MyTarget\Limiting\DoctrineCacheRateLimitProvider" public="false">
+        <service id="dsl.my_target_client.rate_limit_provider" class="Dsl\MyTarget\Limiting\DoctrineCacheRateLimitProvider" public="false">
             <argument type="service" id="dsl.my_target_client.cache_control"/>
         </service>
 
@@ -41,11 +41,11 @@
             <argument/> <!-- prefix from config -->
         </service>
 
-        <service id="dsl.my_target_client.middleware.response_validating" class="MyTarget\Transport\Middleware\Impl\ResponseValidatingMiddleware" public="false">
+        <service id="dsl.my_target_client.middleware.response_validating" class="Dsl\MyTarget\Transport\Middleware\Impl\ResponseValidatingMiddleware" public="false">
             <tag name="dsl.mytarget_client.middleware"/>
         </service>
 
-        <service id="dsl.my_target_client.middleware.limitting" class="MyTarget\Limiting\LimitingMiddleware" public="false">
+        <service id="dsl.my_target_client.middleware.limitting" class="Dsl\MyTarget\Limiting\LimitingMiddleware" public="false">
             <argument type="service" id="dsl.my_target_client.rate_limit_provider"/>
             <tag name="dsl.mytarget_client.middleware"/>
         </service>

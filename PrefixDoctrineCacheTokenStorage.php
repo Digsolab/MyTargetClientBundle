@@ -3,7 +3,7 @@
 namespace DSL\MyTargetClientBundle;
 
 use Doctrine\Common\Cache\Cache;
-use MyTarget\Token\DoctrineCacheTokenStorage;
+use Dsl\MyTarget\Token\DoctrineCacheTokenStorage;
 
 class PrefixDoctrineCacheTokenStorage extends DoctrineCacheTokenStorage
 {

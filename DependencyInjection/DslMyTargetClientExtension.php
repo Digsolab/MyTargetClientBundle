@@ -5,16 +5,15 @@ namespace DSL\MyTargetClientBundle\DependencyInjection;
 use Doctrine\Common\Annotations\AnnotationReader;
 use Doctrine\Instantiator\Instantiator;
 use DSL\Lock\RedisLock;
-use DSL\MyTargetClientBundle\PrefixLockManager;
+use Dsl\MyTarget\Token\TokenGrantMiddleware;
 use GuzzleHttp\Psr7\Uri;
-use MyTarget\Client;
-use MyTarget\Token\ClientCredentials\Credentials;
-use MyTarget\Token\GrantMiddleware;
-use MyTarget\Token\TokenAcquirer;
-use MyTarget\Token\TokenManager;
-use MyTarget\Transport\HttpTransport;
-use MyTarget\Transport\Middleware\HttpMiddlewareStackPrototype;
-use MyTarget\Transport\RequestFactory;
+use Dsl\MyTarget\Client;
+use Dsl\MyTarget\Token\ClientCredentials\Credentials;
+use Dsl\MyTarget\Token\TokenAcquirer;
+use Dsl\MyTarget\Token\TokenManager;
+use Dsl\MyTarget\Transport\HttpTransport;
+use Dsl\MyTarget\Transport\Middleware\HttpMiddlewareStackPrototype;
+use Dsl\MyTarget\Transport\RequestFactory;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
@@ -127,7 +126,7 @@ class DslMyTargetClientExtension extends ConfigurableExtension
         foreach ($container->findTaggedServiceIds('dsl.mytarget_client.middleware') as $def => $tags) {
             $middlewares[] = $container->getDefinition($def);
         }
-        $middlewares[] = new Definition(GrantMiddleware::class, [$tokenManagerDef]);
+        $middlewares[] = new Definition(TokenGrantMiddleware::class, [$tokenManagerDef]);
 
         $middlewareStack = (new Definition())
             ->setFactory(HttpMiddlewareStackPrototype::class . '::fromArray')

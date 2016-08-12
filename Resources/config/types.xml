@@ -5,22 +5,25 @@
            xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
 
     <services>
-        <service id="dsl.my_target_client.type.array" class="MyTarget\Mapper\Type\ArrayType">
+        <service id="dsl.my_target_client.type.array" class="Dsl\MyTarget\Mapper\Type\ArrayType">
             <tag name="dsl.my_target_client.type" type="array"/>
         </service>
-        <service id="dsl.my_target_client.type.scalar" class="MyTarget\Mapper\Type\ScalarType">
+        <service id="dsl.my_target_client.type.scalar" class="Dsl\MyTarget\Mapper\Type\ScalarType">
             <tag name="dsl.my_target_client.type" type="scalar"/>
         </service>
-        <service id="dsl.my_target_client.type.date" class="MyTarget\Mapper\Type\DateTimeType">
+        <service id="dsl.my_target_client.type.date" class="Dsl\MyTarget\Mapper\Type\DateTimeType">
             <tag name="dsl.my_target_client.type" type="date"/>
         </service>
-        <service id="dsl.my_target_client.type.enum" class="MyTarget\Mapper\Type\EnumType">
+        <service id="dsl.my_target_client.type.enum" class="Dsl\MyTarget\Mapper\Type\EnumType">
             <tag name="dsl.my_target_client.type" type="enum"/>
         </service>
-        <service id="dsl.my_target_client.type.mixed" class="MyTarget\Mapper\Type\MixedType">
+        <service id="dsl.my_target_client.type.mixed" class="Dsl\MyTarget\Mapper\Type\MixedType">
             <tag name="dsl.my_target_client.type" type="mixed"/>
         </service>
-        <service id="dsl.my_target_client.type.object" class="MyTarget\Mapper\Type\ObjectType">
+        <service id="dsl.my_target_client.type.mixed" class="Dsl\MyTarget\Mapper\Type\DictType">
+            <tag name="dsl.my_target_client.type" type="dict"/>
+        </service>
+        <service id="dsl.my_target_client.type.object" class="Dsl\MyTarget\Mapper\Type\ObjectType">
             <argument/>
             <argument/>
             <tag name="dsl.my_target_client.type" type="object"/>

@@ -3,7 +3,7 @@
 namespace DSL\MyTargetClientBundle;
 
 use DSL\LockInterface;
-use MyTarget\Token\LockManager;
+use Dsl\MyTarget\Token\LockManager;
 
 class PrefixLockManager extends LockManager
 {
