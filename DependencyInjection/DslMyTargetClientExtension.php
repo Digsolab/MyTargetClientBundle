@@ -105,6 +105,7 @@ class DslMyTargetClientExtension extends ConfigurableExtension
             [
                 $tokenAcquirerDef,
                 $container->getDefinition('dsl.my_target_client.token_storage'),
+                $credentialsDef,
                 $lockManagerDef,
             ]
         );
@@ -116,7 +117,7 @@ class DslMyTargetClientExtension extends ConfigurableExtension
                 'dsl.my_target_client.service.token_manager.' . $clientName => $tokenManagerDef
             ]
         );
-        
+
         $container->getDefinition('dsl.my_target_client.cache_control')
                   ->replaceArgument(0, $redisRef);
 
