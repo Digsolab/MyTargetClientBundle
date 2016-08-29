@@ -20,7 +20,7 @@
         <service id="dsl.my_target_client.type.mixed" class="Dsl\MyTarget\Mapper\Type\MixedType">
             <tag name="dsl.my_target_client.type" type="mixed"/>
         </service>
-        <service id="dsl.my_target_client.type.mixed" class="Dsl\MyTarget\Mapper\Type\DictType">
+        <service id="dsl.my_target_client.type.dict" class="Dsl\MyTarget\Mapper\Type\DictType">
             <tag name="dsl.my_target_client.type" type="dict"/>
         </service>
         <service id="dsl.my_target_client.type.object" class="Dsl\MyTarget\Mapper\Type\ObjectType">
