@@ -90,6 +90,7 @@ class DslMyTargetClientExtension extends ConfigurableExtension
                 $transportDef = $container->getDefinition('dsl.my_target_client.transport.http');
             }
         }
+        $container->setDefinition('dsl.my_target_client.transport.http', $transportDef);
 
         $container->setParameter('dsl.mytarget_client.cache_dir', $mergedConfig['cache_dir']);
 
@@ -121,19 +122,8 @@ class DslMyTargetClientExtension extends ConfigurableExtension
         $container->getDefinition('dsl.my_target_client.cache_control')
                   ->replaceArgument(0, $redisRef);
 
-        // gathering middlewares TODO move to compiles pass
-        $middlewares = [];
-
-        foreach ($container->findTaggedServiceIds('dsl.mytarget_client.middleware') as $def => $tags) {
-            $middlewares[] = $container->getDefinition($def);
-        }
-        $middlewares[] = new Definition(TokenGrantMiddleware::class, [$tokenManagerDef]);
-
-        $middlewareStack = (new Definition())
-            ->setFactory(HttpMiddlewareStackPrototype::class . '::fromArray')
-            ->setArguments([$middlewares, $transportDef]);
-
-        $clientDefinition = new Definition(Client::class, [$requestFactoryDef, $middlewareStack]);
+        $clientDefinition = new Definition(Client::class, [$requestFactoryDef, null]);
+        $clientDefinition->addTag('dsl.mytarget_client.client', ['name' => $clientName]);
         $container->setDefinition('dsl.my_target_client.service.client.' . $clientName, $clientDefinition);
     }
 }
