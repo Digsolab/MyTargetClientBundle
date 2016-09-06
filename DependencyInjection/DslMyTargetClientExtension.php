@@ -33,8 +33,13 @@ class DslMyTargetClientExtension extends ConfigurableExtension
         $this->loader = new Loader\XmlFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
         $this->loader->load('services.xml');
 
-        $redisRef = new Reference($mergedConfig['redis_client']);
+        $redisRef = new Reference($mergedConfig['redis_lock_client']);
         $lockDef = new Definition(RedisLock::class, [$redisRef]);
+
+        $redisRef = new Reference($mergedConfig['redis_cache_client']);
+        $container->getDefinition('dsl.my_target_client.cache_control')
+                  ->replaceArgument(0, $redisRef);
+
         $lockManagerDef = $container->getDefinition('dsl.my_target_client.lock_manager')
             ->replaceArgument(0, $lockDef)
             ->replaceArgument(1, $mergedConfig['lock_lifetime'])
@@ -54,7 +59,7 @@ class DslMyTargetClientExtension extends ConfigurableExtension
         );
 
         foreach ($mergedConfig['clients'] as $name => $config) {
-            $this->loadClient($name, $config, $redisRef, $lockManagerDef, $container);
+            $this->loadClient($name, $config, $lockManagerDef, $container);
         }
     }
 
@@ -77,7 +82,6 @@ class DslMyTargetClientExtension extends ConfigurableExtension
     protected function loadClient(
         $clientName,
         array $mergedConfig,
-        $redisRef,
         $lockManagerDef,
         ContainerBuilder $container
     ) {
@@ -117,9 +121,6 @@ class DslMyTargetClientExtension extends ConfigurableExtension
                 'dsl.my_target_client.service.token_manager.' . $clientName => $tokenManagerDef
             ]
         );
-
-        $container->getDefinition('dsl.my_target_client.cache_control')
-                  ->replaceArgument(0, $redisRef);
 
         // gathering middlewares TODO move to compiles pass
         $middlewares = [];

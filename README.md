@@ -25,7 +25,8 @@ class AppKernel extends Kernel
 In the example below 2 separate clients are configured:
 ```
 dsl_my_target_client:
-    redis_client: acme.bundle.service.predis_client             #id of predis client service. Must be configured in your app.
+    redis_lock_client: acme.bundle.service.predis_client        #id of predis client service. Must be configured in your app to store tokens.
+    redis_cache_client: acme.bundle.service.predis_client       #id of predis client service. Must be configured in your app to store cache. Can be the same as previous.
     lock_prefix: lock_                                          #keys prefix for reddis
     lock_lifetime: 300                                          #lifetime for token lock. default value is 300
     clients:
