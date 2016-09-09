@@ -14,10 +14,11 @@ class Configuration implements ConfigurationInterface
         $root
             ->children()
                 ->scalarNode('redis_lock_client')->isRequired()->end()
-                ->scalarNode('redis_cache_client')->isRequired()->end()
-                ->scalarNode('token_prefix')->defaultValue('token_')->end()
+                ->scalarNode('redis_token_client')->isRequired()->end()
                 ->scalarNode('lock_prefix')->defaultValue('lock_')->end()
+                ->scalarNode('token_prefix')->defaultValue('token_')->end()
                 ->scalarNode('lock_lifetime')->defaultValue(300)->end()
+                ->scalarNode('default_client')->defaultValue('main')->end()
                 ->arrayNode('clients')
                     ->useAttributeAsKey('name')
                     ->prototype('array')
