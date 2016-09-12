@@ -17,12 +17,16 @@ use Dsl\MyTarget\Transport\RequestFactory;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
+use Symfony\Component\DependencyInjection\Exception\ServiceNotFoundException;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\HttpKernel\DependencyInjection\ConfigurableExtension;
 use Symfony\Component\DependencyInjection\Loader;
 
 class DslMyTargetClientExtension extends ConfigurableExtension
 {
+
+    const CLIENT_DEF_TEMPLATE = 'dsl.my_target_client.service.client.%s';
+    const TOKEN_MANAGER_DEF_TEMPLATE = 'dsl.my_target_client.service.token_manager.%s';
     /**
      * @var Loader\XmlFileLoader
      */
@@ -33,8 +37,13 @@ class DslMyTargetClientExtension extends ConfigurableExtension
         $this->loader = new Loader\XmlFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
         $this->loader->load('services.xml');
 
-        $redisRef = new Reference($mergedConfig['redis_client']);
+        $redisRef = new Reference($mergedConfig['redis_lock_client']);
         $lockDef = new Definition(RedisLock::class, [$redisRef]);
+
+        $redisRef = new Reference($mergedConfig['redis_token_client']);
+        $container->getDefinition('dsl.my_target_client.cache_control')
+                  ->replaceArgument(0, $redisRef);
+
         $lockManagerDef = $container->getDefinition('dsl.my_target_client.lock_manager')
             ->replaceArgument(0, $lockDef)
             ->replaceArgument(1, $mergedConfig['lock_lifetime'])
@@ -54,8 +63,17 @@ class DslMyTargetClientExtension extends ConfigurableExtension
         );
 
         foreach ($mergedConfig['clients'] as $name => $config) {
-            $this->loadClient($name, $config, $redisRef, $lockManagerDef, $container);
+            $this->loadClient($name, $config, $lockManagerDef, $container);
         }
+
+        try {
+            $name = sprintf(self::CLIENT_DEF_TEMPLATE, $mergedConfig['default_client']);
+            $container->getDefinition($name);
+            $container->setAlias('dsl.my_target_client.client', $name);
+            $name = sprintf(self::TOKEN_MANAGER_DEF_TEMPLATE, $mergedConfig['default_client']);
+            $container->setAlias('dsl.my_target_client.token_manager', $name);
+        } catch (ServiceNotFoundException $e) {}
+
     }
 
     protected function loadTypes(ContainerBuilder $container)
@@ -77,7 +95,6 @@ class DslMyTargetClientExtension extends ConfigurableExtension
     protected function loadClient(
         $clientName,
         array $mergedConfig,
-        $redisRef,
         $lockManagerDef,
         ContainerBuilder $container
     ) {
@@ -92,7 +109,7 @@ class DslMyTargetClientExtension extends ConfigurableExtension
         }
         $container->setDefinition('dsl.my_target_client.transport.http', $transportDef);
 
-        $container->setParameter('dsl.mytarget_client.cache_dir', $mergedConfig['cache_dir']);
+        $container->setParameter('dsl.my_target_client.cache_dir', $mergedConfig['cache_dir']);
 
         $baseUriDef = new Definition(Uri::class, [$mergedConfig['base_uri']]);
         $credentialsDef = new Definition(
@@ -115,15 +132,12 @@ class DslMyTargetClientExtension extends ConfigurableExtension
             [
                 $requestFactoryDef,
                 $tokenAcquirerDef,
-                'dsl.my_target_client.service.token_manager.' . $clientName => $tokenManagerDef
+                sprintf(self::TOKEN_MANAGER_DEF_TEMPLATE, $clientName) => $tokenManagerDef
             ]
         );
 
-        $container->getDefinition('dsl.my_target_client.cache_control')
-                  ->replaceArgument(0, $redisRef);
-
         $clientDefinition = new Definition(Client::class, [$requestFactoryDef, null]);
         $clientDefinition->addTag('dsl.mytarget_client.client', ['name' => $clientName]);
-        $container->setDefinition('dsl.my_target_client.service.client.' . $clientName, $clientDefinition);
+        $container->setDefinition(sprintf(self::CLIENT_DEF_TEMPLATE, $clientName), $clientDefinition);
     }
 }
