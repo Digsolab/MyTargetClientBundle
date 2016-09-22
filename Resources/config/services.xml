@@ -22,7 +22,7 @@
             <argument type="service" id="dsl.my_target_client.http_client"/>
         </service>
 
-        <service id="dsl.my_target_client.rate_limit_provider" class="Dsl\MyTarget\Limiting\DoctrineCacheRateLimitProvider" public="false">
+        <service id="dsl.my_target_client.rate_limit_provider" class="Dsl\MyTarget\Limiting\DoctrineCacheRateLimitProvider">
             <argument type="service" id="dsl.my_target_client.cache_control"/>
         </service>
 
@@ -36,7 +36,7 @@
             <argument/> <!-- lock prefix -->
         </service>
 
-        <service id="dsl.my_target_client.token_storage" class="DSL\MyTargetClientBundle\PrefixDoctrineCacheTokenStorage" public="false">
+        <service id="dsl.my_target_client.token_storage" class="DSL\MyTargetClientBundle\PrefixDoctrineCacheTokenStorage">
             <argument type="service" id="dsl.my_target_client.cache_control"/>
             <argument/> <!-- prefix from config -->
         </service>
