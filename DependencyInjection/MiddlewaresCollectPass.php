@@ -14,7 +14,7 @@ class MiddlewaresCollectPass implements CompilerPassInterface
 {
     public function process(ContainerBuilder $container)
     {
-        $config = $container->getExtensionConfig('dsl_my_target');
+        $config = $container->getExtensionConfig('dsl_my_target_client');
 
         $middlewares = [];
         foreach ($container->findTaggedServiceIds(Ext::PREF . 'middleware') as $def => $tags) {
