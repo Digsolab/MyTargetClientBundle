@@ -49,13 +49,6 @@ class DslMyTargetClientExtension extends ConfigurableExtension
                                     ->replaceArgument(2, $mergedConfig['lock_prefix']);
 
         $this->loadTypes($container);
-        $types = [];
-        foreach ($container->findTaggedServiceIds(self::PREF . 'type') as $def => $tags) {
-            foreach ($tags as $attributes) {
-                $types[$attributes['type']] = $container->getDefinition($def);
-            }
-        }
-        $container->getDefinition(self::PREF . 'service.mapper')->replaceArgument(0, $types);
         $container->getDefinition(self::PREF . 'token_storage')->replaceArgument(1, $mergedConfig['token_prefix']);
 
         foreach ($mergedConfig['clients'] as $name => $config) {
@@ -79,6 +72,14 @@ class DslMyTargetClientExtension extends ConfigurableExtension
         $readerDef = new Definition(AnnotationReader::class);
         $instantiatorDef = new Definition(Instantiator::class);
         $objectTypeDef->setArguments([$readerDef, $instantiatorDef]);
+
+        $types = [];
+        foreach ($container->findTaggedServiceIds(self::PREF . 'type') as $def => $tags) {
+            foreach ($tags as $attributes) {
+                $types[$attributes['type']] = $container->getDefinition($def);
+            }
+        }
+        $container->getDefinition(self::PREF . 'service.mapper')->replaceArgument(0, $types);
     }
 
     /**
@@ -89,12 +90,8 @@ class DslMyTargetClientExtension extends ConfigurableExtension
      * @throws \Symfony\Component\DependencyInjection\Exception\ServiceNotFoundException
      * @throws \Symfony\Component\DependencyInjection\Exception\OutOfBoundsException
      */
-    protected function loadClient(
-        $clientName,
-        array $mergedConfig,
-        $lockManagerDef,
-        ContainerBuilder $container
-    ) {
+    protected function loadClient($clientName, array $mergedConfig, $lockManagerDef, ContainerBuilder $container)
+    {
         if ($mergedConfig['guzzle_client'] !== null) {
             $transportDef = new Definition(HttpTransport::class, [new Reference($mergedConfig['guzzle_client'])]);
         } else {
