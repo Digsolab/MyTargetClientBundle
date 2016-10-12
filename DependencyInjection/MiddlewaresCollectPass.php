@@ -14,6 +14,8 @@ class MiddlewaresCollectPass implements CompilerPassInterface
 {
     public function process(ContainerBuilder $container)
     {
+        $config = $container->getExtensionConfig('dsl_my_target_client');
+
         $middlewares = [];
         foreach ($container->findTaggedServiceIds(Ext::PREF . 'middleware') as $def => $tags) {
             foreach ($tags as $tag) {
@@ -43,7 +45,9 @@ class MiddlewaresCollectPass implements CompilerPassInterface
             if (array_key_exists($clientName, $middlewares)) {
                 $allMiddlewares = array_merge($allMiddlewares, $middlewares[$clientName]);
             }
-            $allMiddlewares[] = new Definition(TokenGrantMiddleware::class, [$tokenManagerDef]);
+            if ($config['clients'][$clientName]['token_grant']) {
+                $allMiddlewares[] = new Definition(TokenGrantMiddleware::class, [$tokenManagerDef]);
+            }
             $middlewareStack = (new Definition())
                 ->setFactory(HttpMiddlewareStackPrototype::class . '::fromArray')
                 ->setArguments([$allMiddlewares, $transportDef]);

@@ -33,6 +33,7 @@ class Configuration implements ConfigurationInterface
                             ->scalarNode('cache_dir')->defaultValue('%kernel.root_dir%/cache/mytarget')->end()
                             ->scalarNode('guzzle_client')->defaultValue(null)->end()
                             ->scalarNode('transport_service')->defaultValue(null)->end()
+                            ->scalarNode('token_grant')->defaultValue(true)->end()
                         ->end()
                     ->end()
                 ->end()
