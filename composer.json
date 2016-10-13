@@ -14,7 +14,7 @@
     "require": {
         "php": ">=5.5",
         "symfony/framework-bundle": ">=2.7.3",
-        "dsl/my-target-sdk": "~0.2, >=0.2.2",
+        "dsl/my-target-sdk": "dev-PHP-5098_projection_v2",
         "dsl/cache-control": "~0.1",
         "guzzlehttp/guzzle": "^6.2",
         "predis/predis": "^1.0"
