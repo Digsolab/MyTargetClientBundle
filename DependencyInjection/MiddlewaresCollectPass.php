@@ -46,7 +46,8 @@ class MiddlewaresCollectPass implements CompilerPassInterface
             if (array_key_exists($clientName, $middlewares)) {
                 $allMiddlewares = array_merge($allMiddlewares, $middlewares[$clientName]);
             }
-            if ($config['clients'][$clientName]['token_grant']) {
+            $clientConfig = $config['clients'][$clientName];
+            if (!isset($clientConfig['token_grant']) || true === $clientConfig['token_grant']) {
                 $allMiddlewares[] = new Definition(TokenGrantMiddleware::class, [$tokenManagerDef]);
             }
             $middlewareStack = (new Definition())
