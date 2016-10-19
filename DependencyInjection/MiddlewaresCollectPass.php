@@ -4,11 +4,13 @@ namespace DSL\MyTargetClientBundle\DependencyInjection;
 
 use Dsl\MyTarget\Client;
 use Dsl\MyTarget\Token\TokenGrantMiddleware;
+use Dsl\MyTarget\Transport\GuzzleHttpTransport;
 use Dsl\MyTarget\Transport\Middleware\HttpMiddlewareStackPrototype;
 use DSL\MyTargetClientBundle\DependencyInjection\DslMyTargetClientExtension as Ext;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
+use Symfony\Component\DependencyInjection\Reference;
 
 class MiddlewaresCollectPass implements CompilerPassInterface
 {
@@ -28,7 +30,14 @@ class MiddlewaresCollectPass implements CompilerPassInterface
             }
         }
 
-        foreach ($container->findTaggedServiceIds(Ext::PREF . 'client') as $def => $tags) {
+        $tagged = $container->findTaggedServiceIds(Ext::PREF . 'client');
+        foreach ($tagged as $def => $tags) {
+            if (isset($config['guzzle_client']) && null !== $config) {
+                $transportDef = new Definition(GuzzleHttpTransport::class, [new Reference($config['guzzle_client'])]);
+            } else {
+                $transportDef = $container->getDefinition(Ext::PREF . 'transport.http');
+            }
+
             $client = $container->getDefinition($def);
             if (Client::class !== $client->getClass()) {
                 continue;
@@ -40,17 +49,26 @@ class MiddlewaresCollectPass implements CompilerPassInterface
 
             $tokenManagerDef = $container->getDefinition(sprintf(Ext::TOKEN_MANAGER_DEF_TEMPLATE, $clientName));
             $tokenAquirerDef = $tokenManagerDef->getArgument(0);
-            $transportDef = $tokenAquirerDef->getArgument(1);
+
+            // To prevent cyclic references, TokenAcquirer has separate MW Stack
+            /** @var Definition $tokensMiddlewareStack */
+            $tokensMiddlewareStack = $tokenAquirerDef->getArgument(1);
+            $middlewareStack = new Definition(HttpMiddlewareStackPrototype::class);
 
             $allMiddlewares = $middlewares['all'];
             if (array_key_exists($clientName, $middlewares)) {
                 $allMiddlewares = array_merge($allMiddlewares, $middlewares[$clientName]);
             }
             $clientConfig = $config['clients'][$clientName];
+            $tokensMiddlewareStack
+                ->setFactory(HttpMiddlewareStackPrototype::class . '::fromArray')
+                ->setArguments([$allMiddlewares, $transportDef]);
+
+            // TokenAcquirer doesn't need TokenGrantMiddleware
             if (!isset($clientConfig['token_grant']) || true === $clientConfig['token_grant']) {
-                $allMiddlewares[] = new Definition(TokenGrantMiddleware::class, [$tokenManagerDef]);
+                array_unshift($allMiddlewares, new Definition(TokenGrantMiddleware::class, [$tokenManagerDef]));
             }
-            $middlewareStack = (new Definition())
+            $middlewareStack
                 ->setFactory(HttpMiddlewareStackPrototype::class . '::fromArray')
                 ->setArguments([$allMiddlewares, $transportDef]);
             $client->replaceArgument(1, $middlewareStack);
