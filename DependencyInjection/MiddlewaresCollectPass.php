@@ -19,12 +19,12 @@ class MiddlewaresCollectPass implements CompilerPassInterface
         $middlewaresAnyClient = [];
         foreach ($container->findTaggedServiceIds(Ext::PREF . 'middleware') as $serviceId => $tags) {
             foreach ($tags as $tag) {
-                $priority = isset($tag['priority']) ? (int)$tag['priority'] : 0;
+                $radius = isset($tag['radius']) ? (int)$tag['radius'] : 0;
 
                 if (isset($tag['client'])) {
-                    $middlewaresPerClient[$tag['client']][$serviceId] = [$priority, new Reference($serviceId)];
+                    $middlewaresPerClient[$tag['client']][$serviceId] = [$radius, new Reference($serviceId)];
                 } else {
-                    $middlewaresAnyClient[$serviceId] = [$priority, new Reference($serviceId)];
+                    $middlewaresAnyClient[$serviceId] = [$radius, new Reference($serviceId)];
                 }
             }
         }
@@ -54,7 +54,7 @@ class MiddlewaresCollectPass implements CompilerPassInterface
 
             $httpStack = $container->getDefinition(sprintf(Ext::HTTP_STACK_TEMPLATE, $clientName));
 
-            foreach ($clientMiddlewares as list($priority, $middleware)) {
+            foreach ($clientMiddlewares as list($radius, $middleware)) {
                 $httpStack->addMethodCall("push", [$middleware]);
             }
         }
