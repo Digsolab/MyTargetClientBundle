@@ -5,7 +5,6 @@ namespace DSL\MyTargetClientBundle\DependencyInjection;
 use Doctrine\Common\Annotations\AnnotationReader;
 use Doctrine\Instantiator\Instantiator;
 use DSL\Lock\RedisLock;
-use Dsl\MyTarget\Transport\Middleware\HttpMiddlewareStackPrototype;
 use GuzzleHttp\Psr7\Uri;
 use Dsl\MyTarget\Client;
 use Dsl\MyTarget\Token\ClientCredentials\Credentials;
@@ -93,6 +92,16 @@ class DslMyTargetClientExtension extends ConfigurableExtension
      */
     protected function loadClient($clientName, array $mergedConfig, $lockManagerDef, ContainerBuilder $container)
     {
+        if ($mergedConfig['guzzle_client'] !== null) {
+            $transportDef = new Definition(HttpTransport::class, [new Reference($mergedConfig['guzzle_client'])]);
+        } else {
+            if (null !== $mergedConfig['transport_service']) {
+                $transportDef = new Reference($mergedConfig['transport_service']);
+            } else {
+                $transportDef = $container->getDefinition(self::PREF . 'transport.http');
+            }
+        }
+
         $container->setParameter(self::PREF . 'cache_dir', $mergedConfig['cache_dir']);
 
         $baseUriDef = new Definition(Uri::class, [$mergedConfig['base_uri']]);
@@ -101,9 +110,7 @@ class DslMyTargetClientExtension extends ConfigurableExtension
             [$mergedConfig['auth']['client_id'], $mergedConfig['auth']['client_secret']]
         );
         $requestFactoryDef = new Definition(RequestFactory::class, [$baseUriDef]);
-        $middlewareStack = new Definition(HttpMiddlewareStackPrototype::class);
-
-        $tokenAcquirerDef = new Definition(TokenAcquirer::class, [$baseUriDef, $middlewareStack, $credentialsDef]);
+        $tokenAcquirerDef = new Definition(TokenAcquirer::class, [$baseUriDef, $transportDef, $credentialsDef]);
         $tokenManagerDef = new Definition(
             TokenManager::class,
             [
