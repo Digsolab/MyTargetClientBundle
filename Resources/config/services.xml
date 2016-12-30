@@ -42,12 +42,12 @@
         </service>
 
         <service id="dsl.my_target_client.middleware.response_validating" class="Dsl\MyTarget\Transport\Middleware\Impl\ResponseValidatingMiddleware" public="false">
-            <tag name="dsl.my_target_client.middleware" priority="64" />
+            <tag name="dsl.my_target_client.middleware" radius="64" />
         </service>
 
         <service id="dsl.my_target_client.middleware.limiting" class="Dsl\MyTarget\Limiting\LimitingMiddleware" public="false">
             <argument type="service" id="dsl.my_target_client.rate_limit_provider"/>
-            <tag name="dsl.my_target_client.middleware" priority="32" />
+            <tag name="dsl.my_target_client.middleware" radius="32" />
         </service>
     </services>
 </container>
