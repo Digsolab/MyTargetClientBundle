@@ -9,51 +9,54 @@ use DSL\MyTargetClientBundle\DependencyInjection\DslMyTargetClientExtension as E
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
+use Symfony\Component\DependencyInjection\Reference;
 
 class MiddlewaresCollectPass implements CompilerPassInterface
 {
     public function process(ContainerBuilder $container)
     {
-        $config = $container->getExtensionConfig('dsl_my_target_client');
-        $config = array_pop($config);
-
-        $middlewares = [];
-        foreach ($container->findTaggedServiceIds(Ext::PREF . 'middleware') as $def => $tags) {
+        $middlewaresPerClient = [];
+        $middlewaresAnyClient = [];
+        foreach ($container->findTaggedServiceIds(Ext::PREF . 'middleware') as $serviceId => $tags) {
             foreach ($tags as $tag) {
-                if (array_key_exists('client', $tag)) {
-                    $middlewares[$tag['client']][$def] = $container->getDefinition($def);
+                $priority = isset($tag['priority']) ? (int)$tag['priority'] : 0;
+
+                if (isset($tag['client'])) {
+                    $middlewaresPerClient[$tag['client']][$serviceId] = [$priority, new Reference($serviceId)];
                 } else {
-                    $middlewares['all'][$def] = $container->getDefinition($def);
+                    $middlewaresAnyClient[$serviceId] = [$priority, new Reference($serviceId)];
                 }
             }
         }
+        $comparator = function ($l, $r) {
+            return $l[0] - $r[0];
+        };
 
-        foreach ($container->findTaggedServiceIds(Ext::PREF . 'client') as $def => $tags) {
-            $client = $container->getDefinition($def);
-            if (Client::class !== $client->getClass()) {
+        // we need to get only unique Definitions (otherwise if there are aliases we will add middlewares to them twice)
+        $serviceIds = $container->getServiceIds();
+        $clients = [];
+        $clientDefs = new \SplObjectStorage();
+        foreach ($serviceIds as $serviceId) {
+            if (strpos($serviceId, Ext::CLIENT_PREFIX) !== 0) {
                 continue;
             }
-            if ( ! isset($tags[0]['name'])) {
-                continue;
+            if ( ! $clientDefs->contains($container->getDefinition($serviceId))) {
+                $clients[$serviceId] = substr($serviceId, strlen(Ext::CLIENT_PREFIX));
+                $clientDefs->attach($container->getDefinition($serviceId));
             }
-            $clientName = $tags[0]['name'];
+        }
 
-            $tokenManagerDef = $container->getDefinition(sprintf(Ext::TOKEN_MANAGER_DEF_TEMPLATE, $clientName));
-            $tokenAquirerDef = $tokenManagerDef->getArgument(0);
-            $transportDef = $tokenAquirerDef->getArgument(1);
+        foreach ($clients as $clientServiceId => $clientName) {
+            $clientMiddlewares = array_merge(
+                $middlewaresAnyClient,
+                isset($middlewaresPerClient[$clientName]) ? $middlewaresPerClient[$clientName] : []);
+            usort($clientMiddlewares, $comparator);
 
-            $allMiddlewares = $middlewares['all'];
-            if (array_key_exists($clientName, $middlewares)) {
-                $allMiddlewares = array_merge($allMiddlewares, $middlewares[$clientName]);
+            $httpStack = $container->getDefinition(sprintf(Ext::HTTP_STACK_TEMPLATE, $clientName));
+
+            foreach ($clientMiddlewares as list($priority, $middleware)) {
+                $httpStack->addMethodCall("push", [$middleware]);
             }
-            $clientConfig = $config['clients'][$clientName];
-            if (!isset($clientConfig['token_grant']) || true === $clientConfig['token_grant']) {
-                $allMiddlewares[] = new Definition(TokenGrantMiddleware::class, [$tokenManagerDef]);
-            }
-            $middlewareStack = (new Definition())
-                ->setFactory(HttpMiddlewareStackPrototype::class . '::fromArray')
-                ->setArguments([$allMiddlewares, $transportDef]);
-            $client->replaceArgument(1, $middlewareStack);
         }
     }
 }
