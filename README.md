@@ -62,3 +62,9 @@ In this example the alias `dsl.mytarget_client.client` points to `dsl.my_target_
     var_dump( $bannerOperator->all() );
 //...
 ```
+
+## Middlewares
+
+You can create your own middlewares and mark them with a tag `<tag name="dsl.my_target_client.middleware" radius="128" client="client-name" />`.  
+If you specify `client` attribute this middleware will be added to this client only, otherwise all clients will receive it.  
+By default all middlewares get the radius of `PHP_INT_MAX`, you can specify any other desirable value in the range from `PHP_INT_MIN` to `PHP_INT_MAX`. You can think of a middleware as a spherical layer and the radius is a proximity of the middleware to the centre of the sphere, where `HttpTransport` is at the centre.

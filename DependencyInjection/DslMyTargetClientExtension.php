@@ -122,7 +122,7 @@ class DslMyTargetClientExtension extends ConfigurableExtension
             $container->setDefinition($managerId = sprintf(self::TOKEN_MANAGER_DEF_TEMPLATE, $clientName), $tokenManagerDef);
 
             $tokenMiddleware = new Definition(TokenGrantMiddleware::class, [new Reference($managerId)]);
-            $tokenMiddleware->addTag(self::PREF . "middleware", ["client" => $clientName, "radius" => 128]);
+            $tokenMiddleware->addTag(self::PREF . "middleware", ["client" => $clientName, "radius" => 8192]);
 
             $container->setDefinition(sprintf(self::TOKEN_MIDDLEWARE_TEMPLATE, $clientName), $tokenMiddleware);
         }
