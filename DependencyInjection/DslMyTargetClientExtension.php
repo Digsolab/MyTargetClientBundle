@@ -5,6 +5,8 @@ namespace DSL\MyTargetClientBundle\DependencyInjection;
 use Doctrine\Common\Annotations\AnnotationReader;
 use Doctrine\Instantiator\Instantiator;
 use DSL\Lock\RedisLock;
+use Dsl\MyTarget\Token\TokenGrantMiddleware;
+use Dsl\MyTarget\Transport\Middleware\HttpMiddlewareStackPrototype;
 use GuzzleHttp\Psr7\Uri;
 use Dsl\MyTarget\Client;
 use Dsl\MyTarget\Token\ClientCredentials\Credentials;
@@ -22,9 +24,11 @@ use Symfony\Component\DependencyInjection\Loader;
 
 class DslMyTargetClientExtension extends ConfigurableExtension
 {
-
-    const CLIENT_DEF_TEMPLATE = 'dsl.my_target_client.service.client.%s';
+    const TRANSPORT_TEMPLATE = 'dsl.my_target_client.transport.%s';
+    const HTTP_STACK_TEMPLATE = 'dsl.my_target_client.http_stack.%s';
+    const CLIENT_PREFIX = 'dsl.my_target_client.service.client.';
     const TOKEN_MANAGER_DEF_TEMPLATE = 'dsl.my_target_client.service.token_manager.%s';
+    const TOKEN_MIDDLEWARE_TEMPLATE = 'dsl.my_target_client.token_middleware.%s';
     const PREF = 'dsl.my_target_client.';
     /**
      * @var Loader\XmlFileLoader
@@ -36,12 +40,10 @@ class DslMyTargetClientExtension extends ConfigurableExtension
         $this->loader = new Loader\XmlFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
         $this->loader->load('services.xml');
 
-        $redisRef = new Reference($mergedConfig['redis_lock_client']);
-        $lockDef = new Definition(RedisLock::class, [$redisRef]);
+        $lockDef = new Definition(RedisLock::class, [new Reference($mergedConfig['redis_lock_client'])]);
 
-        $redisRef = new Reference($mergedConfig['redis_token_client']);
         $container->getDefinition(self::PREF . 'cache_control')
-                  ->replaceArgument(0, $redisRef);
+                  ->replaceArgument(0, new Reference($mergedConfig['redis_token_client']));
 
         $lockManagerDef = $container->getDefinition(self::PREF . 'lock_manager')
                                     ->replaceArgument(0, $lockDef)
@@ -56,14 +58,13 @@ class DslMyTargetClientExtension extends ConfigurableExtension
         }
 
         try {
-            $name = sprintf(self::CLIENT_DEF_TEMPLATE, $mergedConfig['default_client']);
+            $name = self::CLIENT_PREFIX . $mergedConfig['default_client'];
             $container->getDefinition($name);
             $container->setAlias(self::PREF . 'client', $name);
             $name = sprintf(self::TOKEN_MANAGER_DEF_TEMPLATE, $mergedConfig['default_client']);
             $container->setAlias(self::PREF . 'token_manager', $name);
         } catch (ServiceNotFoundException $e) {
         }
-
     }
 
     protected function loadTypes(ContainerBuilder $container)
@@ -74,31 +75,26 @@ class DslMyTargetClientExtension extends ConfigurableExtension
         $objectTypeDef->setArguments([$readerDef, $instantiatorDef]);
 
         $types = [];
-        foreach ($container->findTaggedServiceIds(self::PREF . 'type') as $def => $tags) {
+        foreach ($container->findTaggedServiceIds(self::PREF . 'type') as $serviceId => $tags) {
             foreach ($tags as $attributes) {
-                $types[$attributes['type']] = $container->getDefinition($def);
+                $types[$attributes['type']] = new Reference($serviceId);
             }
         }
         $container->getDefinition(self::PREF . 'service.mapper')->replaceArgument(0, $types);
     }
 
-    /**
-     * @param array            $mergedConfig
-     * @param ContainerBuilder $container
-     *
-     * @throws \Symfony\Component\DependencyInjection\Exception\BadMethodCallException
-     * @throws \Symfony\Component\DependencyInjection\Exception\ServiceNotFoundException
-     * @throws \Symfony\Component\DependencyInjection\Exception\OutOfBoundsException
-     */
     protected function loadClient($clientName, array $mergedConfig, $lockManagerDef, ContainerBuilder $container)
     {
+        $transportId = sprintf(self::TRANSPORT_TEMPLATE, $clientName);
+        $transport = new Reference($transportId);
+
         if ($mergedConfig['guzzle_client'] !== null) {
-            $transportDef = new Definition(HttpTransport::class, [new Reference($mergedConfig['guzzle_client'])]);
+            $container->setDefinition($transportId, new Definition(HttpTransport::class, [new Reference($mergedConfig['guzzle_client'])]));
         } else {
             if (null !== $mergedConfig['transport_service']) {
-                $transportDef = new Reference($mergedConfig['transport_service']);
+                $container->setAlias($transportId, $mergedConfig['transport_service']);
             } else {
-                $transportDef = $container->getDefinition(self::PREF . 'transport.http');
+                $container->setAlias($transportId, self::PREF . 'transport.http');
             }
         }
 
@@ -109,32 +105,34 @@ class DslMyTargetClientExtension extends ConfigurableExtension
             Credentials::class,
             [$mergedConfig['auth']['client_id'], $mergedConfig['auth']['client_secret']]
         );
-        $requestFactoryDef = new Definition(RequestFactory::class, [$baseUriDef]);
-        $tokenAcquirerDef = new Definition(TokenAcquirer::class, [$baseUriDef, $transportDef, $credentialsDef]);
-        $tokenManagerDef = new Definition(
-            TokenManager::class,
-            [
+
+        if ($mergedConfig["token_grant"]) {
+            $tokenAcquirerDef = new Definition(TokenAcquirer::class, [$baseUriDef, $transport, $credentialsDef]);
+            $tokenManagerDef = new Definition(TokenManager::class, [
                 $tokenAcquirerDef,
-                $container->getDefinition(self::PREF . 'token_storage'),
+                new Reference(self::PREF . 'token_storage'),
                 $credentialsDef,
                 $lockManagerDef,
-            ]
-        );
+            ]);
 
-        if ($mergedConfig["token_grant_logger"] !== null) {
-            $tokenManagerDef->addMethodCall("setLogger", [new Reference($mergedConfig["token_grant_logger"])]);
+            if ($mergedConfig["token_grant_logger"] !== null) {
+                $tokenManagerDef->addMethodCall("setLogger", [new Reference($mergedConfig["token_grant_logger"])]);
+            }
+
+            $container->setDefinition($managerId = sprintf(self::TOKEN_MANAGER_DEF_TEMPLATE, $clientName), $tokenManagerDef);
+
+            $tokenMiddleware = new Definition(TokenGrantMiddleware::class, [new Reference($managerId)]);
+            $tokenMiddleware->addTag(self::PREF . "middleware", ["client" => $clientName, "priority" => 128]);
+
+            $container->setDefinition(sprintf(self::TOKEN_MIDDLEWARE_TEMPLATE, $clientName), $tokenMiddleware);
         }
 
-        $container->addDefinitions(
-            [
-                $requestFactoryDef,
-                $tokenAcquirerDef,
-                sprintf(self::TOKEN_MANAGER_DEF_TEMPLATE, $clientName) => $tokenManagerDef,
-            ]
-        );
+        $httpStack = new Definition(HttpMiddlewareStackPrototype::class, [$transport]);
+        $httpStack->setFactory([HttpMiddlewareStackPrototype::class, "newEmpty"]);
+        $container->setDefinition($httpStackId = sprintf(self::HTTP_STACK_TEMPLATE, $clientName), $httpStack);
 
-        $clientDefinition = new Definition(Client::class, [$requestFactoryDef, null]);
-        $clientDefinition->addTag(self::PREF . 'client', ['name' => $clientName]);
-        $container->setDefinition(sprintf(self::CLIENT_DEF_TEMPLATE, $clientName), $clientDefinition);
+        $clientDefinition = new Definition(Client::class, [new Definition(RequestFactory::class, [$baseUriDef]), new Reference($httpStackId)]);
+
+        $container->setDefinition(self::CLIENT_PREFIX . $clientName, $clientDefinition);
     }
 }
