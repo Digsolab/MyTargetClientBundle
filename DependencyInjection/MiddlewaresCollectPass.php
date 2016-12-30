@@ -19,7 +19,7 @@ class MiddlewaresCollectPass implements CompilerPassInterface
         $middlewaresAnyClient = [];
         foreach ($container->findTaggedServiceIds(Ext::PREF . 'middleware') as $serviceId => $tags) {
             foreach ($tags as $tag) {
-                $radius = isset($tag['radius']) ? (int)$tag['radius'] : 0;
+                $radius = isset($tag['radius']) ? (int)$tag['radius'] : PHP_INT_MAX;
 
                 if (isset($tag['client'])) {
                     $middlewaresPerClient[$tag['client']][$serviceId] = [$radius, new Reference($serviceId)];
@@ -29,7 +29,7 @@ class MiddlewaresCollectPass implements CompilerPassInterface
             }
         }
         $comparator = function ($l, $r) {
-            return $l[0] - $r[0];
+            return $r[0] - $l[0];
         };
 
         // we need to get only unique Definitions (otherwise if there are aliases we will add middlewares to them twice)
