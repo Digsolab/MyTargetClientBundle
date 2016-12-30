@@ -34,6 +34,7 @@ class Configuration implements ConfigurationInterface
                             ->scalarNode('guzzle_client')->defaultValue(null)->end()
                             ->scalarNode('transport_service')->defaultValue(null)->end()
                             ->scalarNode('token_grant')->defaultValue(true)->end()
+                            ->scalarNode('token_grant_logger')->defaultValue(null)->end()
                         ->end()
                     ->end()
                 ->end()
@@ -41,5 +42,4 @@ class Configuration implements ConfigurationInterface
         ;
         return $treeBuilder;
     }
-
 }

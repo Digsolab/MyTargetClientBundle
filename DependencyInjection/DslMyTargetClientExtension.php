@@ -121,6 +121,10 @@ class DslMyTargetClientExtension extends ConfigurableExtension
             ]
         );
 
+        if ($mergedConfig["token_grant_logger"] !== null) {
+            $tokenManagerDef->addMethodCall("setLogger", [new Reference($mergedConfig["token_grant_logger"])]);
+        }
+
         $container->addDefinitions(
             [
                 $requestFactoryDef,
